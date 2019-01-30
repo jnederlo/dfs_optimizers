@@ -44,52 +44,52 @@ class Optimizer:
 		goalies_lineup = [pulp.LpVariable("goalie_{}".format(i+1), cat="Binary") for i in range(num_goalies)]
 		
 		#add the max player constraints
-		prob += (sum(skaters_lineup[i] for i in range(num_skaters)) == 8)
-		prob += (sum(goalies_lineup[i] for i in range(num_goalies)) == 1)
+		prob += (pulp.lpSum(skaters_lineup[i] for i in range(num_skaters)) == 8)
+		prob += (pulp.lpSum(goalies_lineup[i] for i in range(num_goalies)) == 1)
 
 		#add the positional constraints
-		prob += (2 <= sum(positions['C'][i]*skaters_lineup[i] for i in range(num_skaters)))
-		prob += (sum(positions['C'][i]*skaters_lineup[i] for i in range(num_skaters)) <= 3)
-		prob += (3 <= sum(positions['W'][i]*skaters_lineup[i] for i in range(num_skaters)))
-		prob += (sum(positions['W'][i]*skaters_lineup[i] for i in range(num_skaters)) <= 4)
-		prob += (2 <= sum(positions['D'][i]*skaters_lineup[i] for i in range(num_skaters)))
-		prob += (sum(positions['D'][i]*skaters_lineup[i] for i in range(num_skaters)) <= 3)
+		prob += (2 <= pulp.lpSum(positions['C'][i]*skaters_lineup[i] for i in range(num_skaters)))
+		prob += (pulp.lpSum(positions['C'][i]*skaters_lineup[i] for i in range(num_skaters)) <= 3)
+		prob += (3 <= pulp.lpSum(positions['W'][i]*skaters_lineup[i] for i in range(num_skaters)))
+		prob += (pulp.lpSum(positions['W'][i]*skaters_lineup[i] for i in range(num_skaters)) <= 4)
+		prob += (2 <= pulp.lpSum(positions['D'][i]*skaters_lineup[i] for i in range(num_skaters)))
+		prob += (pulp.lpSum(positions['D'][i]*skaters_lineup[i] for i in range(num_skaters)) <= 3)
 
 		#add the salary constraint
-		prob += ((sum(self.skaters_df.loc[i, 'sal']*skaters_lineup[i] for i in range(num_skaters)) +
-					sum(self.goalies_df.loc[i, 'sal']*goalies_lineup[i] for i in range(num_goalies))) <= self.salary_cap)
+		prob += ((pulp.lpSum(self.skaters_df.loc[i, 'sal']*skaters_lineup[i] for i in range(num_skaters)) +
+					pulp.lpSum(self.goalies_df.loc[i, 'sal']*goalies_lineup[i] for i in range(num_goalies))) <= self.salary_cap)
 		
 		#exactly 3 teams for the 8 skaters constraint
 		used_team = [pulp.LpVariable("u{}".format(i+1), cat="Binary") for i in range(num_teams)]
 		for i in range(num_teams):
-			prob += (used_team[i] <= sum(skaters_teams[k][i]*skaters_lineup[k] for k in range(num_skaters)))
-			prob += (sum(skaters_teams[k][i]*skaters_lineup[k] for k in range(num_skaters)) <= 6*used_team[i])
-		prob += (sum(used_team[i] for i in range(num_teams)) >= 3)
+			prob += (used_team[i] <= pulp.lpSum(skaters_teams[k][i]*skaters_lineup[k] for k in range(num_skaters)))
+			prob += (pulp.lpSum(skaters_teams[k][i]*skaters_lineup[k] for k in range(num_skaters)) <= 6*used_team[i])
+		prob += (pulp.lpSum(used_team[i] for i in range(num_teams)) >= 3)
 
 		#no goalies against skaters constraint
 		for i in range(num_goalies):
-			prob += (6*goalies_lineup[i] + sum(goalies_opponents[k][i]*skaters_lineup[k] for k in range(num_skaters)) <= 6)
+			prob += (6*goalies_lineup[i] + pulp.lpSum(goalies_opponents[k][i]*skaters_lineup[k] for k in range(num_skaters)) <= 6)
 
 		#Must have at least one complete line in each lineup
 		line_stack_3 = [pulp.LpVariable("ls3{}".format(i+1), cat="Binary") for i in range(num_lines)]
 		for i in range(num_lines):
-			prob += (3*line_stack_3[i] <= sum(team_lines[k][i]*skaters_lineup[k] for k in range(num_skaters)))
-		prob += (sum(line_stack_3[i] for i in range(num_lines)) >= 1)
+			prob += (3*line_stack_3[i] <= pulp.lpSum(team_lines[k][i]*skaters_lineup[k] for k in range(num_skaters)))
+		prob += (pulp.lpSum(line_stack_3[i] for i in range(num_lines)) >= 1)
 		
 		#Must have at least 2 lines with at least 2 players
 		line_stack_2 = [pulp.LpVariable("ls2{}".format(i+1), cat="Binary") for i in range(num_lines)]
 		for i in range(num_lines):
-			prob += (2*line_stack_2[i] <= sum(team_lines[k][i]*skaters_lineup[k] for k in range(num_skaters)))
-		prob += (sum(line_stack_2[i] for i in range(num_lines)) >= 2)
+			prob += (2*line_stack_2[i] <= pulp.lpSum(team_lines[k][i]*skaters_lineup[k] for k in range(num_skaters)))
+		prob += (pulp.lpSum(line_stack_2[i] for i in range(num_lines)) >= 2)
 
 		#variance constraints - each lineup can't have more than the num overlap of any combination of players in any previous lineups
 		for i in range(len(lineups)):
-			prob += ((sum(lineups[i][k]*skaters_lineup[k] for k in range(num_skaters)) +
-						sum(lineups[i][num_skaters+k]*goalies_lineup[k] for k in range(num_goalies))) <= self.overlap)
+			prob += ((pulp.lpSum(lineups[i][k]*skaters_lineup[k] for k in range(num_skaters)) +
+						pulp.lpSum(lineups[i][num_skaters+k]*goalies_lineup[k] for k in range(num_goalies))) <= self.overlap)
 		
 		#add the objective
-		prob += pulp.lpSum((sum(self.skaters_df.loc[i, 'proj']*skaters_lineup[i] for i in range(num_skaters)) +
-							sum(self.goalies_df.loc[i, 'proj']*goalies_lineup[i] for i in range(num_goalies))))
+		prob += pulp.lpSum((pulp.lpSum(self.skaters_df.loc[i, 'proj']*skaters_lineup[i] for i in range(num_skaters)) +
+							pulp.lpSum(self.goalies_df.loc[i, 'proj']*goalies_lineup[i] for i in range(num_goalies))))
 
 		#solve the problem
 		status = prob.solve(self.solver)
