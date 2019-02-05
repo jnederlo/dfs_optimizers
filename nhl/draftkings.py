@@ -165,18 +165,3 @@ class Draftkings(Optimizer):
 			filled_lineups.append(a_lineup)
 		
 		return filled_lineups
-
-# site = input("Select 1 for Draftkings or 2 for Fanduel: ")
-# if site == '1':
-# 	#enter the user parameters
-# 	DK = Draftkings(num_lineups=150,
-# 					overlap=4,
-# 					solver=pulp.CPLEX_PY(msg=0),
-# 					players_filepath = './players.csv',
-# 					goalies_filepath = './goalies.csv',
-# 					output_filepath = './test_output.csv')
-# 	#run the code
-# 	DK.generate_lineups()
-# else:
-# 	pass
-
