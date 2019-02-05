@@ -1,0 +1,4 @@
+pandas==0.22.0
+PuLP==1.6.9
+termcolor==1.1.0
+tqdm==4.29.0

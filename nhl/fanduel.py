@@ -1,15 +1,15 @@
 import pulp
 from nhl.optimizer import Optimizer
 
-class Draftkings(Optimizer):
+class Fanduel(Optimizer):
 	"""
-	Draftkings Optimizer Settings
-	Draftkings will inherit from the super class Optimizer
+	Fanduel Optimizer Settings
+	Fanduel will inherit from the super class Optimizer
 	"""
 	def __init__(self, num_lineups, overlap, solver, players_filepath, goalies_filepath, output_filepath):
 		super().__init__(num_lineups, overlap, solver, players_filepath, goalies_filepath, output_filepath)
-		self.salary_cap = 50000
-		self.header = ['C', 'C', 'W', 'W', 'W', 'D', 'D', 'G', 'UTIL']
+		self.salary_cap = 55000
+		self.header = ['C', 'C', 'W', 'W', 'W', 'W', 'D', 'D', 'G']
 
 	def type_1(self, lineups):
 		""" 
@@ -34,22 +34,21 @@ class Draftkings(Optimizer):
 		prob += (pulp.lpSum(goalies_lineup[i] for i in range(self.num_goalies)) == 1)
 
 		#add the positional constraints
-		prob += (2 <= pulp.lpSum(self.positions['C'][i]*skaters_lineup[i] for i in range(self.num_skaters)))
-		prob += (pulp.lpSum(self.positions['C'][i]*skaters_lineup[i] for i in range(self.num_skaters)) <= 3)
-		prob += (3 <= pulp.lpSum(self.positions['W'][i]*skaters_lineup[i] for i in range(self.num_skaters)))
-		prob += (pulp.lpSum(self.positions['W'][i]*skaters_lineup[i] for i in range(self.num_skaters)) <= 4)
-		prob += (2 <= pulp.lpSum(self.positions['D'][i]*skaters_lineup[i] for i in range(self.num_skaters)))
-		prob += (pulp.lpSum(self.positions['D'][i]*skaters_lineup[i] for i in range(self.num_skaters)) <= 3)
+		prob += (pulp.lpSum(self.positions['C'][i]*skaters_lineup[i] for i in range(self.num_skaters)) == 2)
+		prob += (pulp.lpSum(self.positions['W'][i]*skaters_lineup[i] for i in range(self.num_skaters)) == 4)
+		prob += (pulp.lpSum(self.positions['D'][i]*skaters_lineup[i] for i in range(self.num_skaters)) == 2)
 
 		#add the salary constraint
 		prob += ((pulp.lpSum(self.skaters_df.loc[i, 'sal']*skaters_lineup[i] for i in range(self.num_skaters)) +
 					pulp.lpSum(self.goalies_df.loc[i, 'sal']*goalies_lineup[i] for i in range(self.num_goalies))) <= self.salary_cap)
 		
-		#exactly 3 teams for the 8 skaters constraint
+		#at least 3 teams for the 8 skaters and no more than 4 players (inluding goalies) on the same team constraints
 		used_team = [pulp.LpVariable("u{}".format(i+1), cat="Binary") for i in range(self.num_teams)]
 		for i in range(self.num_teams):
-			prob += (used_team[i] <= pulp.lpSum(self.skaters_teams[k][i]*skaters_lineup[k] for k in range(self.num_skaters)))
-			prob += (pulp.lpSum(self.skaters_teams[k][i]*skaters_lineup[k] for k in range(self.num_skaters)) <= 6*used_team[i])
+			prob += (used_team[i] <= (pulp.lpSum(self.skaters_teams[k][i]*skaters_lineup[k] for k in range(self.num_skaters)) +
+										pulp.lpSum(self.goalies_teams[k][i]*goalies_lineup[k] for k in range(self.num_goalies))))
+			prob += ((pulp.lpSum(self.skaters_teams[k][i]*skaters_lineup[k] for k in range(self.num_skaters)) +
+						pulp.lpSum(self.goalies_teams[k][i]*goalies_lineup[k] for k in range(self.num_goalies))) <= 4*used_team[i])
 		prob += (pulp.lpSum(used_team[i] for i in range(self.num_teams)) >= 3)
 
 		#no goalies against skaters constraint
@@ -116,8 +115,6 @@ class Draftkings(Optimizer):
 							a_lineup[0] = self.skaters_df.loc[num, 'playerName']
 						elif a_lineup[1] == "":
 							a_lineup[1] = self.skaters_df.loc[num, 'playerName']
-						elif a_lineup[8] == "":
-							a_lineup[8] = self.skaters_df.loc[num, 'playerName']
 					elif self.positions['W'][num] == 1:
 						if a_lineup[2] == "":
 							a_lineup[2] = self.skaters_df.loc[num, 'playerName']
@@ -125,18 +122,16 @@ class Draftkings(Optimizer):
 							a_lineup[3] = self.skaters_df.loc[num, 'playerName']
 						elif a_lineup[4] == "":
 							a_lineup[4] = self.skaters_df.loc[num, 'playerName']
-						elif a_lineup[8] == "":
-							a_lineup[8] = self.skaters_df.loc[num, 'playerName']
-					elif self.positions['D'][num] == 1:
-						if a_lineup[5] == "":
+						elif a_lineup[5] == "":
 							a_lineup[5] = self.skaters_df.loc[num, 'playerName']
-						elif a_lineup[6] == "":
+					elif self.positions['D'][num] == 1:
+						if a_lineup[6] == "":
 							a_lineup[6] = self.skaters_df.loc[num, 'playerName']
-						elif a_lineup[8] == "":
-							a_lineup[8] = self.skaters_df.loc[num, 'playerName']
+						elif a_lineup[7] == "":
+							a_lineup[7] = self.skaters_df.loc[num, 'playerName']
 			for num, goalie in enumerate(goalies_lineup):
 				if goalie > 0.9 and goalie < 1.1:
-					if a_lineup[7] == "":
-						a_lineup[7] = self.goalies_df.loc[num, 'playerName']
+					if a_lineup[8] == "":
+						a_lineup[8] = self.goalies_df.loc[num, 'playerName']
 			filled_lineups.append(a_lineup)
 		return filled_lineups

@@ -16,6 +16,13 @@ class Optimizer:
 		self.num_skaters = len(self.skaters_df.index)
 		self.num_goalies = len(self.goalies_df.index)
 		self.output_filepath = output_filepath
+		self.positions = {'C':[], 'W':[], 'D':[]}
+		self.team_lines = []
+		self.skaters_teams = []
+		self.goalies_teams = []
+		self.goalies_opponents = []
+		self.num_teams = None
+		self.num_lines = None
 
 	def save_file(self, header, filled_lineups):
 		"""
@@ -33,16 +40,14 @@ class Optimizer:
 		Returns the indicators in a tuple.
 		"""
 		teams = list(set(self.skaters_df['team'].values))
-		num_teams = len(teams)
+		self.num_teams = len(teams)
 
 		#Create player position indicators so you know which position they are playing
-		positions = {'C':[], 'W':[], 'D':[]}
 		for pos in self.skaters_df.loc[:, 'pos']:
-			for key in positions:
-				positions[key].append(1 if key in pos else 0)
+			for key in self.positions:
+				self.positions[key].append(1 if key in pos else 0)
 		
 		#Create player line indicators so you know which line by their team they are on
-		team_lines = []
 		for i, line in enumerate(self.skaters_df.loc[:, 'line']):
 			player_line = []
 			if int(line) == 1:
@@ -61,34 +66,30 @@ class Optimizer:
 					player_lines.extend(player_line)
 				else:
 					player_lines.extend((0, 0, 0, 0))
-			team_lines.append(player_lines)
-		num_lines = len(team_lines[0])
+			self.team_lines.append(player_lines)
+		self.num_lines = len(self.team_lines[0])
 		
 		#NOTE: Maybe add PP line indicators
 
-		#Create player team indicators so you know which team they are on
-		skaters_teams = []
+		#Create player team indicators so you know which team they are on (for use in DK team constraint)
 		for player_team in self.skaters_df.loc[:, 'team']:
-			skaters_teams.append([1 if player_team == team else 0 for team in teams])
+			self.skaters_teams.append([1 if player_team == team else 0 for team in teams])
+
+		#Create goalie team indicators so you know which team they are on (for use in FD team constraint)
+		for goalie_team in self.goalies_df.loc[:, 'team']:
+			self.goalies_teams.append([1 if goalie_team == team else 0 for team in teams])
 
 		#Create goalie opponent indicators so you know who the goalie is opposing
-		goalies_opponents = []
 		for player_opp in self.skaters_df.loc[:, 'opp']:
-			goalies_opponents.append([1 if player_opp == team else 0 for team in self.goalies_df.loc[:, 'team']])
+			self.goalies_opponents.append([1 if player_opp == team else 0 for team in self.goalies_df.loc[:, 'team']])
 
-		#return the indicators in a tuple
-		return (positions, team_lines, skaters_teams, goalies_opponents, num_teams, num_lines)
-
-	def generate_lineups(self, formula, indicators):
+	def generate_lineups(self, formula):
 		"""
 		Generate n lineups with the forumla's specified constraints and saves them to CSV output file.
 		"""
-		#get the indicators from the parent Optimizer class (tuple)
-		indicators = self.create_indicators()
-		#Generate the lineups
 		lineups = []
 		for _ in tqdm(range(self.num_lineups)):
-			lineup = formula(lineups, *indicators)
+			lineup = formula(lineups)
 			if lineup:
 				lineups.append(lineup)
 			else:
