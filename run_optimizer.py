@@ -2,7 +2,6 @@ import pulp
 from termcolor import colored
 from nhl.draftkings import Draftkings as NHLDraftkings
 
-
 #RUN THE NHL OPTIMIZER
 ################################################################
 while True:
@@ -11,17 +10,24 @@ while True:
 		print(colored('Try Again...', 'red'))
 		continue
 	print()
+	#set the optimizer based on the user input for the site
 	if site == '1':
-		#enter the user parameters
-		DK = NHLDraftkings(num_lineups=150,
-						overlap=4,
-						solver=pulp.CPLEX_PY(msg=0),
-						players_filepath = 'nhl/players.csv',
-						goalies_filepath = 'nhl/goalies.csv',
-						output_filepath = 'nhl/test_output.csv')
-		#run the code
-		DK.generate_lineups()
+		#enter the parameters
+		optimizer = NHLDraftkings(num_lineups=150,
+						   overlap=4,
+						   solver=pulp.CPLEX_PY(msg=0),
+						   players_filepath = 'nhl/players.csv',
+						   goalies_filepath = 'nhl/goalies.csv',
+						   output_filepath = 'nhl/test_output.csv')
 	else:
 		pass
+	#create the indicators used to set the constraints to be used by the formula
+	indicators = optimizer.create_indicators()
+	#generate the lineups with the formula and the indicators
+	lineups = optimizer.generate_lineups(formula=optimizer.type_1, indicators=indicators)
+	#fill the lineups with player names - send in the positions indicator
+	filled_lineups = optimizer.fill_lineups(lineups, indicators[0])
+	#save the lineups
+	optimizer.save_file(optimizer.header, filled_lineups)
 	break
 
