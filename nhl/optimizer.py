@@ -1,5 +1,6 @@
 import sys
 import csv
+import pulp
 import pandas as pd
 from tqdm import tqdm
 
@@ -11,8 +12,8 @@ class Optimizer:
 		self.num_lineups = num_lineups
 		self.overlap = overlap
 		self.solver = solver
-		self.skaters_df = pd.read_csv(players_filepath)
-		self.goalies_df = pd.read_csv(goalies_filepath)
+		self.skaters_df = self.load_inputs(players_filepath)
+		self.goalies_df = self.load_inputs(goalies_filepath)
 		self.num_skaters = len(self.skaters_df.index)
 		self.num_goalies = len(self.goalies_df.index)
 		self.output_filepath = output_filepath
@@ -23,21 +24,34 @@ class Optimizer:
 		self.goalies_opponents = []
 		self.num_teams = None
 		self.num_lines = None
+		self.actuals = True if 'actual' in self.skaters_df and 'actual' in self.goalies_df else False
+
+	def load_inputs(self, filepath):
+		"""
+		Returns the loaded data from the user filepath into a pandas dataframe.
+		"""
+		try:
+			data = pd.read_csv(filepath)
+		except IOError:
+			sys.exit('INVALID FILEPATH: {}'.format(filepath))
+		return data
 
 	def save_file(self, header, filled_lineups):
 		"""
-		Saves the filled_lineups with player names to a file.
-		Header is specific to site.
+		Save the filled lineups to a csv.
 		"""
 		with open(self.output_filepath, 'w') as f:
 				writer = csv.writer(f)
+				if self.actuals:
+					header.extend(('PROJ', 'ACTUAL'))
 				writer.writerow(header)
 				writer.writerows(filled_lineups)
+		print("Saved lineups to: {}".format(self.output_filepath))
 
 	def create_indicators(self):
 		"""
-		Set's up the player and team indicators that get used to create the constraints for the pulp problem,
-		Returns the indicators in a tuple.
+		Preprocesses the data and classifies players into different indicators for constraints.
+		The indicators are saved as class variables.
 		"""
 		teams = list(set(self.skaters_df['team'].values))
 		self.num_teams = len(teams)
@@ -68,8 +82,6 @@ class Optimizer:
 					player_lines.extend((0, 0, 0, 0))
 			self.team_lines.append(player_lines)
 		self.num_lines = len(self.team_lines[0])
-		
-		#NOTE: Maybe add PP line indicators
 
 		#Create player team indicators so you know which team they are on (for use in DK team constraint)
 		for player_team in self.skaters_df.loc[:, 'team']:
@@ -85,7 +97,7 @@ class Optimizer:
 
 	def generate_lineups(self, formula):
 		"""
-		Generate n lineups with the forumla's specified constraints and saves them to CSV output file.
+		Generate n lineups with the forumla's specified constraints.
 		"""
 		lineups = []
 		for _ in tqdm(range(self.num_lineups)):

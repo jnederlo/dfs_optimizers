@@ -45,24 +45,24 @@ class Draftkings(Optimizer):
 		prob += ((pulp.lpSum(self.skaters_df.loc[i, 'sal']*skaters_lineup[i] for i in range(self.num_skaters)) +
 					pulp.lpSum(self.goalies_df.loc[i, 'sal']*goalies_lineup[i] for i in range(self.num_goalies))) <= self.salary_cap)
 		
-		#exactly 3 teams for the 8 skaters constraint
+		# exactly 3 teams for the 8 skaters constraint
 		used_team = [pulp.LpVariable("u{}".format(i+1), cat="Binary") for i in range(self.num_teams)]
 		for i in range(self.num_teams):
 			prob += (used_team[i] <= pulp.lpSum(self.skaters_teams[k][i]*skaters_lineup[k] for k in range(self.num_skaters)))
 			prob += (pulp.lpSum(self.skaters_teams[k][i]*skaters_lineup[k] for k in range(self.num_skaters)) <= 6*used_team[i])
 		prob += (pulp.lpSum(used_team[i] for i in range(self.num_teams)) >= 3)
 
-		#no goalies against skaters constraint
+		# no goalies against skaters constraint
 		for i in range(self.num_goalies):
 			prob += (6*goalies_lineup[i] + pulp.lpSum(self.goalies_opponents[k][i]*skaters_lineup[k] for k in range(self.num_skaters)) <= 6)
 
-		#Must have at least one complete line in each lineup
+		# Must have at least one complete line in each lineup
 		line_stack_3 = [pulp.LpVariable("ls3{}".format(i+1), cat="Binary") for i in range(self.num_lines)]
 		for i in range(self.num_lines):
 			prob += (3*line_stack_3[i] <= pulp.lpSum(self.team_lines[k][i]*skaters_lineup[k] for k in range(self.num_skaters)))
 		prob += (pulp.lpSum(line_stack_3[i] for i in range(self.num_lines)) >= 1)
 		
-		#Must have at least 2 lines with at least 2 players
+		# Must have at least 2 lines with at least 2 players
 		line_stack_2 = [pulp.LpVariable("ls2{}".format(i+1), cat="Binary") for i in range(self.num_lines)]
 		for i in range(self.num_lines):
 			prob += (2*line_stack_2[i] <= pulp.lpSum(self.team_lines[k][i]*skaters_lineup[k] for k in range(self.num_skaters)))
@@ -82,7 +82,7 @@ class Draftkings(Optimizer):
 
 		#check if the optimizer found an optimal solution
 		if status != pulp.LpStatusOptimal:
-			print(f'Only {len(lineups)} feasible lineups produced', '\n')
+			print('Only {} feasible lineups produced'.format(len(lineups)), '\n')
 			return None
 
 		# Puts the output of one lineup into a format that will be used later
@@ -109,6 +109,9 @@ class Draftkings(Optimizer):
 			a_lineup = ["", "", "", "", "", "", "", "", ""]
 			skaters_lineup = lineup[:self.num_skaters]
 			goalies_lineup = lineup[-1*self.num_goalies:]
+			total_proj = 0
+			if self.actuals:
+				total_actual = 0
 			for num, player in enumerate(skaters_lineup):
 				if player > 0.9 and player < 1.1:
 					if self.positions['C'][num] == 1:
@@ -134,9 +137,18 @@ class Draftkings(Optimizer):
 							a_lineup[6] = self.skaters_df.loc[num, 'playerName']
 						elif a_lineup[8] == "":
 							a_lineup[8] = self.skaters_df.loc[num, 'playerName']
+					total_proj += self.skaters_df.loc[num, 'proj']
+					if self.actuals:
+						total_actual += self.skaters_df.loc[num, 'actual']
 			for num, goalie in enumerate(goalies_lineup):
 				if goalie > 0.9 and goalie < 1.1:
 					if a_lineup[7] == "":
 						a_lineup[7] = self.goalies_df.loc[num, 'playerName']
+					total_proj += self.goalies_df.loc[num, 'proj']
+					if self.actuals:
+						total_actual += self.goalies_df.loc[num, 'actual']
+			a_lineup.append(round(total_proj, 2))
+			if self.actuals:
+				a_lineup.append(round(total_actual, 2))
 			filled_lineups.append(a_lineup)
 		return filled_lineups

@@ -81,7 +81,7 @@ class Fanduel(Optimizer):
 
 		#check if the optimizer found an optimal solution
 		if status != pulp.LpStatusOptimal:
-			print(f'Only {len(lineups)} feasible lineups produced', '\n')
+			print('Only {} feasible lineups produced'.format(len(lineups)), '\n')
 			return None
 
 		# Puts the output of one lineup into a format that will be used later
@@ -102,12 +102,16 @@ class Fanduel(Optimizer):
 		""" 
 		Takes in the lineups with 1's and 0's indicating if the player is used in a lineup.
 		Matches the player in the dataframe and replaces the value with their name.
+		Adds up projected points and actual points (if provided) to save to each lineup.
 		"""
 		filled_lineups = []
 		for lineup in lineups:
 			a_lineup = ["", "", "", "", "", "", "", "", ""]
 			skaters_lineup = lineup[:self.num_skaters]
 			goalies_lineup = lineup[-1*self.num_goalies:]
+			total_proj = 0
+			if self.actuals:
+				total_actual = 0
 			for num, player in enumerate(skaters_lineup):
 				if player > 0.9 and player < 1.1:
 					if self.positions['C'][num] == 1:
@@ -129,9 +133,18 @@ class Fanduel(Optimizer):
 							a_lineup[6] = self.skaters_df.loc[num, 'playerName']
 						elif a_lineup[7] == "":
 							a_lineup[7] = self.skaters_df.loc[num, 'playerName']
+					total_proj += self.skaters_df.loc[num, 'proj']
+					if self.actuals:
+						total_actual += self.skaters_df.loc[num, 'actual']
 			for num, goalie in enumerate(goalies_lineup):
 				if goalie > 0.9 and goalie < 1.1:
 					if a_lineup[8] == "":
 						a_lineup[8] = self.goalies_df.loc[num, 'playerName']
+					total_proj += self.goalies_df.loc[num, 'proj']
+					if self.actuals:
+						total_actual += self.goalies_df.loc[num, 'actual']
+			a_lineup.append(round(total_proj, 2))
+			if self.actuals:
+				a_lineup.append(round(total_actual, 2))
 			filled_lineups.append(a_lineup)
 		return filled_lineups
