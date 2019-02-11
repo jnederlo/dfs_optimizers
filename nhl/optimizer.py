@@ -1,6 +1,7 @@
 import sys
 import csv
 import pulp
+import copy
 import pandas as pd
 from tqdm import tqdm
 
@@ -36,17 +37,34 @@ class Optimizer:
 			sys.exit('INVALID FILEPATH: {}'.format(filepath))
 		return data
 
-	def save_file(self, header, filled_lineups):
+	def save_file(self, header, filled_lineups, show_proj=False):
 		"""
-		Save the filled lineups to a csv.
+		Save the filled lineups to CSV.
+		If show_proj is True the file will be saved with the projections
+			and possibly the actual fantasy points if they exist.
 		"""
-		with open(self.output_filepath, 'w') as f:
-				writer = csv.writer(f)
-				if self.actuals:
-					header.extend(('PROJ', 'ACTUAL'))
-				writer.writerow(header)
-				writer.writerows(filled_lineups)
-		print("Saved lineups to: {}".format(self.output_filepath))
+		#Remove the projections and actuals if they exist to get lineups ready to upload to DK or FD
+		header_copy = copy.deepcopy(header)
+		output_projection_path = self.output_filepath.split('.')[0] + '_proj.csv'
+		if self.actuals:
+			lineups_for_upload = [lineup[:-2] for lineup in filled_lineups]
+			header_copy.extend(('PROJ', 'ACTUAL'))
+		else:
+			lineups_for_upload = [lineup[:-1] for lineup in filled_lineups]
+			header_copy.extend(('PROJ'))
+		#save the file for upload
+		if show_proj == False:
+			with open(self.output_filepath, 'w') as f:
+					writer = csv.writer(f)
+					writer.writerow(header)
+					writer.writerows(lineups_for_upload)
+			print("Saved lineups for upload to: {}".format(self.output_filepath))
+		elif show_proj == True:
+			with open(output_projection_path, 'w') as f:
+					writer = csv.writer(f)
+					writer.writerow(header_copy)
+					writer.writerows(filled_lineups)
+			print("Saved lineups with projection to: {}".format(output_projection_path))
 
 	def create_indicators(self):
 		"""
