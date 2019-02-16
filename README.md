@@ -1,9 +1,11 @@
 # dfs_optimizers
 Optimizers for Daily Fantasy Sports written in python and based on Picking Winners paper.
 
-I describe the concepts of the optimizer in an article:
+I describe the concepts of the optimizer in an article I published to Medium:
 
-https://medium.com/@jarvisnederlof/dfs-lineup-optimizer-with-python-296e822a5309 
+[DFS Lineup Optimizer with Python](https://medium.com/@jarvisnederlof/dfs-lineup-optimizer-with-python-296e822a5309)
+
+### Run the code examples
 
 It's easy to run the examples as I have it pre-loaded to do so. Just clone the repo, make sure you have all of the dependencies installed (check the requirements.txt file) and then run:
 
@@ -11,7 +13,7 @@ It's easy to run the examples as I have it pre-loaded to do so. Just clone the r
 
 This will load in a file from the 'example_inputs' sub-directory of the NHL directory.
 
-##Wait, one more thing
+### Wait, one more thing
 You will need to make sure you have CPLEX installed if you want to run my example as is. You can just use the default solver if you don't want to install CPLEX, but it's much slower. There are also other solvers you can install, but I'll just show you how to install CPLEX. 
 
 Go to [this link](https://www.ibm.com/products/ilog-cplex-optimization-studio) and install the free edition (it will require you to make a free account):
