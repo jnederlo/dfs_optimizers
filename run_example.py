@@ -17,7 +17,7 @@ while True:
 						   solver=pulp.CPLEX_PY(msg=0),
 						   players_filepath = 'nhl/example_inputs/players_inputs/player_17791.csv',
 						   goalies_filepath = 'nhl/example_inputs/goalies_inputs/goalie_17791.csv',
-						   output_filepath = f'nhl/example_output_draftkings.csv')
+						   output_filepath = 'nhl/example_output_draftkings.csv')
 	else:
 		#enter the parameters
 		optimizer = NHLFanduel(num_lineups=150,
